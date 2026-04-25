@@ -1,111 +1,117 @@
-# ProfilerLab — Carreño Post1 U8
+PerforLab — Garzón Post1 U8
 
-Aplicación Android desarrollada para la **Unidad 8: Rendimiento, Optimización y Experiencia Fluida** de la asignatura Aplicaciones Móviles — Ingeniería de Sistemas, Universidad de Santander (UDES) 2026.
+Aplicación Android desarrollada como evidencia práctica de la Unidad 8: Optimización de rendimiento y experiencia de usuario fluida, en la asignatura Aplicaciones Móviles — Ingeniería de Sistemas, Universidad de Santander (UDES), 2026.
 
-## Descripción
+Descripción
 
-La app simula un inventario de 500 productos con actualizaciones de stock cada 500ms, permitiendo evidenciar problemas de rendimiento con `notifyDataSetChanged()` y demostrar la mejora obtenida al implementar `DiffUtil` con `ListAdapter`, optimización de memoria con `ViewBinding` y limpieza de recursos en `onDestroyView()`.
+Esta aplicación simula un entorno de alta carga mediante una lista de aproximadamente 500 productos cuyos valores de stock cambian de forma periódica.
 
----
+El objetivo principal es analizar problemas de rendimiento asociados a actualizaciones ineficientes en listas, y posteriormente aplicar técnicas de optimización que mejoran significativamente el uso de CPU, memoria y renderizado.
 
-## Requisitos
+Se comparan dos enfoques:
 
-- Android Studio Hedgehog (2023.1.1) o superior
-- JDK 17 o superior
-- Android 8.0+ (API 26+)
-- Emulador o dispositivo físico con API 29+ recomendado
+Actualización tradicional con notifyDataSetChanged()
+Actualización optimizada usando DiffUtil y ListAdapter
 
----
+Requisitos
+Android Studio Hedgehog (2023.1.1) o superior
+JDK 17 o superior
+Android 8.0+ (API 26+)
+Emulador o dispositivo físico (recomendado API 29+)
 
-## Configuración y ejecución
+Configuración y ejecución
+Clonar el repositorio:
+git clone https://github.com/dylandjg8413-gif/Garzon-post1-u8
+Abrir el proyecto en Android Studio
+Sincronizar dependencias de Gradle
+Ejecutar la aplicación en un dispositivo o emulador
 
-1. Clona el repositorio:
-```bash
-git clone https://github.com/Johan09CD/Carre-o-post1-u8-Apps
-```
+Tecnologías implementadas
+Herramienta	Función
+RecyclerView	Renderizado eficiente de listas grandes
+ListAdapter + DiffUtil	Actualización inteligente de elementos
+ViewBinding	Acceso seguro y eficiente a vistas
+LiveData	Observación reactiva de datos
+ViewModel + Coroutines	Manejo de lógica y concurrencia
+Android Profiler	Análisis de rendimiento
+Trace	Medición de tiempos de ejecución
 
-2. Abre el proyecto en Android Studio
+Arquitectura del proyecto
+com.udes.performancelab
+├── ProductItem.kt           → Modelo de datos
+├── ProductDiffCallback.kt   → Comparador de listas (DiffUtil)
+├── ProductAdapter.kt        → Adaptador optimizado
+├── ProductViewModel.kt      → Lógica de actualización periódica
+├── ProductFragment.kt       → UI y gestión del ciclo de vida
+└── MainActivity.kt          → Contenedor principal
 
-3. Espera que Gradle sincronice las dependencias
+Estrategias de optimización
 
-4. Ejecuta la app en un emulador o dispositivo físico
+1. Actualización eficiente con DiffUtil
 
----
+Se reemplazó el uso de notifyDataSetChanged() por un enfoque basado en ListAdapter, el cual calcula automáticamente las diferencias entre listas.
 
-## Tecnologías utilizadas
+✔ Solo se actualizan los elementos modificados
+✔ Reducción significativa de renderizados innecesarios
 
-| Tecnología | Uso |
-|---|---|
-| RecyclerView | Lista de alto rendimiento para 500 items |
-| ListAdapter + DiffUtil | Actualización eficiente de items cambiados |
-| ViewBinding | Acceso seguro a vistas sin findViewById |
-| LiveData | Observación reactiva de datos del ViewModel |
-| ViewModel + Coroutines | Lógica de negocio y actualizaciones periódicas |
-| Android Profiler | Medición de CPU y memoria |
-| Trace.beginSection() | Trazas personalizadas para medir rendimiento |
+2. Configuración de RecyclerView
 
----
+Se utilizó:
 
-## Arquitectura
+recyclerView.setHasFixedSize(true)
 
-```
-com.udes.profilerlab
-├── ProductItem.kt          # Modelo de datos
-├── ProductDiffCallback.kt  # DiffUtil para comparar items
-├── ProductAdapter.kt       # ListAdapter optimizado
-├── ProductViewModel.kt     # ViewModel con actualizaciones cada 500ms
-├── ProductFragment.kt      # Fragment con limpieza de ViewBinding
-└── MainActivity.kt         # Activity contenedora del Fragment
-```
+Esto evita cálculos repetitivos del layout cuando los cambios no afectan el tamaño de la lista.
 
----
+3. Prevención de fugas de memoria
 
-## Optimizaciones implementadas
+Se implementó la limpieza de recursos en el Fragment:
 
-### 1. DiffUtil con ListAdapter
-Se reemplazó `notifyDataSetChanged()` por `ListAdapter` con `DiffUtil.ItemCallback`. Esto permite que el adaptador calcule diferencias entre listas en un background thread y redibuje **solo los items que realmente cambiaron**, en lugar de toda la lista.
-
-**Antes:** cada actualización de stock redibujaba los 500 items completos.  
-**Después:** solo el item cuyo stock cambió recibe una actualización visual.
-
-### 2. setHasFixedSize(true)
-Se agregó `setHasFixedSize(true)` al RecyclerView para indicar que su tamaño no cambia cuando se actualiza el contenido, evitando mediciones innecesarias del layout en cada actualización.
-
-### 3. Limpieza de ViewBinding en onDestroyView()
-Se implementó el patrón estándar de limpieza de ViewBinding en el Fragment para evitar memory leaks:
-```kotlin
 override fun onDestroyView() {
     super.onDestroyView()
     binding.recyclerView.adapter = null
     _binding = null
 }
-```
 
-### 4. Trazas personalizadas con Trace.beginSection()
-Se agregaron trazas personalizadas alrededor de `submitList()` para medir el tiempo exacto de actualización en el System Trace del Profiler.
+✔ Evita referencias a vistas destruidas
+✔ Mejora el uso de memoria
 
----
+4. Instrumentación de rendimiento
 
-## Análisis de métricas
+Se añadieron trazas personalizadas usando:
 
-### CPU — Antes de DiffUtil
-- Picos de CPU cercanos al **100%** al cargar los 500 items
-- `Skipped 158 frames` detectado en Logcat
-- Frames tardando hasta **3566ms** (Davey frames)
-- `notifyDataSetChanged()` forzaba el redibujado completo de la lista
+Trace.beginSection("update_list")
 
-### CPU — Después de DiffUtil
-- CPU App estable en **3-5%** durante actualizaciones
-- Solo el primer item muestra animación de cambio
-- Los 499 items restantes no se redibujan
-- Eliminación total de Davey frames durante actualizaciones normales
+✔ Permite analizar tiempos en el System Trace
+✔ Facilita identificar cuellos de botella
 
-### Memoria — Memory Profiler
-- **0 Leaks** detectados después de implementar limpieza de ViewBinding
-- **0 Duplicates** en el heap
-- No se detectaron instancias retenidas de `ProductFragment` después del GC
-- Heap estable sin crecimiento sostenido
+Evaluación de rendimiento
 
+Uso de CPU (sin optimización)
+Alta carga de CPU en cada actualización
+Frames omitidos detectados
+Renderizado completo de la lista en cada cambio
+
+Uso de CPU (optimizado)
+Consumo reducido (3% - 5%)
+Actualización selectiva de elementos
+Eliminación de bloqueos visuales
+
+Uso de memoria
+Sin fugas detectadas
+Uso estable del heap
+Eliminación de referencias innecesarias
+
+Resultados obtenidos
+Mejora significativa en fluidez
+Reducción de uso de CPU
+Optimización del renderizado
+Mayor estabilidad de la aplicación
+
+Conclusiones
+
+La implementación de buenas prácticas como DiffUtil, manejo adecuado del ciclo de vida y medición de rendimiento permite desarrollar aplicaciones más eficientes y escalables.
+
+Este proyecto demuestra cómo pequeñas mejoras en la arquitectura pueden generar grandes diferencias en la experiencia del usuario.
 ---
 
 ## Capturas de pantalla
